@@ -99,7 +99,7 @@ if uploaded_video:
             init_box = (x, y, w, h)
 
             cap = cv2.VideoCapture(video_path)
-            tracker = cv2.TrackerCSRT_create() if hasattr(cv2, "TrackerCSRT_create") else cv2.legacy.TrackerCSRT_create()
+            tracker = cv2.TrackerKCF_create()
             for i in range(st.session_state.start_frame + 1):
                 ret, frame = cap.read()
                 if not ret:
