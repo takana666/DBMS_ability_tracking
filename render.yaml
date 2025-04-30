@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: dbms-tracking-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run ability_tracking_render.py --server.port 10000 --server.address 0.0.0.0
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10
