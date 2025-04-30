@@ -68,13 +68,9 @@ if uploaded_video:
 
     cap = cv2.VideoCapture(video_path)
     selected_frame = None
-    for i in range(total_frames):
-        ret, frame = cap.read()
-        if not ret:
-            break
-        if i == st.session_state.slider_frame:
-            selected_frame = frame.copy()
-            break
+    cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.slider_frame)
+    ret, frame = cap.read()
+    selected_frame = frame.copy() if ret else None
     cap.release()
 
     if selected_frame is not None:
