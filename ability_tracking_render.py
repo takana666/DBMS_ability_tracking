@@ -1,4 +1,3 @@
-# 正確なスライダー表示（read()順送り方式）対応のコードは別ファイルに段階的に追記します。
 import streamlit as st
 import cv2
 import tempfile
@@ -17,7 +16,16 @@ def convert_to_h264(input_path, output_path):
     except Exception as e:
         st.error(f"ffmpeg 実行エラー: {e}")
 
-st.title("DBMSトラッキング（read順送り方式対応）")
+def get_tracker():
+    if hasattr(cv2, "legacy") and hasattr(cv2.legacy, "TrackerCSRT_create"):
+        return cv2.legacy.TrackerCSRT_create()
+    elif hasattr(cv2, "TrackerCSRT_create"):
+        return cv2.TrackerCSRT_create()
+    else:
+        st.error("CSRTトラッカーが使用できません。opencv-contrib-python をインストールしてください。")
+        st.stop()
+
+st.title("DBMSトラッキング（β）")
 
 uploaded_video = st.file_uploader("動画をアップロード", type=["mp4", "avi", "mov", "mkv"])
 if uploaded_video:
@@ -66,18 +74,15 @@ if uploaded_video:
 
     st.write(f"🔵 開始フレーム: {st.session_state.start_frame}, 🔴 終了フレーム: {st.session_state.end_frame}")
 
-    # 正確な read() 順送りで対象フレームを抽出
     cap = cv2.VideoCapture(video_path)
     selected_frame = None
-    current_idx = 0
-    while current_idx <= st.session_state.slider_frame:
+    for i in range(total_frames):
         ret, frame = cap.read()
         if not ret:
             break
-        if current_idx == st.session_state.slider_frame:
+        if i == st.session_state.slider_frame:
             selected_frame = frame.copy()
             break
-        current_idx += 1
     cap.release()
 
     if selected_frame is not None:
@@ -94,7 +99,6 @@ if uploaded_video:
             key="canvas"
         )
 
-
         if st.button("▶️ トラッキングを開始") and canvas_result.json_data and len(canvas_result.json_data["objects"]) > 0:
             rect = canvas_result.json_data["objects"][0]
             x, y = int(rect["left"]), int(rect["top"])
@@ -102,11 +106,9 @@ if uploaded_video:
             init_box = (x, y, w, h)
 
             cap = cv2.VideoCapture(video_path)
-            tracker = cv2.TrackerKCF_create()
             for i in range(st.session_state.start_frame + 1):
                 ret, frame = cap.read()
-                if not ret:
-                    break
+            tracker = get_tracker()
             tracker.init(frame, init_box)
 
             results = []
@@ -120,8 +122,8 @@ if uploaded_video:
 
             progress_bar = st.progress(0)
             status_text = st.empty()
-
             current = st.session_state.start_frame
+
             while current <= st.session_state.end_frame:
                 ret, frame = cap.read()
                 if not ret:
