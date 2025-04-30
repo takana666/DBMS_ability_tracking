@@ -1,4 +1,4 @@
-# Render 対応の ability_tracking.py コードは分割が必要なため、段階的に生成されます。
+# 正確なスライダー表示（read()順送り方式）対応のコードは別ファイルに段階的に追記します。
 import streamlit as st
 import cv2
 import tempfile
@@ -17,7 +17,7 @@ def convert_to_h264(input_path, output_path):
     except Exception as e:
         st.error(f"ffmpeg 実行エラー: {e}")
 
-st.title("DBMSトラッキング（Render対応版）")
+st.title("DBMSトラッキング（read順送り方式対応）")
 
 uploaded_video = st.file_uploader("動画をアップロード", type=["mp4", "avi", "mov", "mkv"])
 if uploaded_video:
@@ -66,11 +66,18 @@ if uploaded_video:
 
     st.write(f"🔵 開始フレーム: {st.session_state.start_frame}, 🔴 終了フレーム: {st.session_state.end_frame}")
 
+    # 正確な read() 順送りで対象フレームを抽出
     cap = cv2.VideoCapture(video_path)
     selected_frame = None
-    cap.set(cv2.CAP_PROP_POS_FRAMES, st.session_state.slider_frame)
-    ret, frame = cap.read()
-    selected_frame = frame.copy() if ret else None
+    current_idx = 0
+    while current_idx <= st.session_state.slider_frame:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if current_idx == st.session_state.slider_frame:
+            selected_frame = frame.copy()
+            break
+        current_idx += 1
     cap.release()
 
     if selected_frame is not None:
